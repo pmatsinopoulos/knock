@@ -5,7 +5,12 @@ module Knock
     before_action :authenticate
 
     def create
+      Rails.logger.info("auth_token: #{auth_token}")
       render json: auth_token, status: :created
+    rescue => ex
+      Rails.logger.error("ex message: #{ex.message}")
+      Rails.logger.error("ex: #{ex.inspect}")
+      raise
     end
 
   private
