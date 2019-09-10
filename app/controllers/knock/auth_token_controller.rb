@@ -24,6 +24,7 @@ module Knock
       if entity.respond_to? :to_token_payload
         AuthToken.new payload: entity.to_token_payload
       else
+        Rails.logger.info("auth_token(): entity: #{entity.inspect}")
         AuthToken.new payload: { sub: entity.id }
       end
     end
