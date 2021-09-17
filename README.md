@@ -1,4 +1,10 @@
+## DISCLAIMER
+
+This project is not being maintained and I don't recommend using it in its current form.
+As an alternative, I recommend using the [jwt](https://github.com/jwt/ruby-jwt) gem directly.
+
 # knock
+
 [![Gem Version](https://badge.fury.io/rb/knock.svg)](http://badge.fury.io/rb/knock)
 [![Build Status](https://travis-ci.org/nsarno/knock.svg)](https://travis-ci.org/nsarno/knock)
 [![Code Climate](https://codeclimate.com/github/nsarno/knock/badges/gpa.svg)](https://codeclimate.com/github/nsarno/knock)
@@ -8,17 +14,6 @@ Seamless JWT authentication for Rails API
 ## Description
 
 Knock is an authentication solution for Rails API-only application based on JSON Web Tokens.
-
-### Why should I use this?
-
-- It's lightweight.
-- It's tailored for Rails API-only application.
-- It's [stateless](https://en.wikipedia.org/wiki/Representational_state_transfer#Stateless).
-- It works out of the box with [Auth0](https://auth0.com/docs/server-apis/rails).
-
-### Is this being maintained?
-
-Unfortunately, not at the moment. Feel free to reach out if you want to become a maintainer.
 
 ## Getting Started
 
@@ -33,20 +28,6 @@ gem 'knock'
 Then execute:
 
     $ bundle install
-
-Finally, run the install generator:
-
-    $ rails generate knock:install
-
-It will create the following initializer `config/initializers/knock.rb`.
-This file contains all the informations about the existing configuration options.
-
-If you don't use an external authentication solution like Auth0, you also need to provide a way for users to sign in:
-
-    $ rails generate knock:token_controller user
-
-This will generate the controller `user_token_controller.rb` and add the required route to your `config/routes.rb` file.
-You can also provide another entity instead of `user`. E.g. `admin`
 
 ### Requirements
 
@@ -118,9 +99,9 @@ If you're using a namespaced model, Knock won't be able to infer it automaticall
 ```ruby
 class ApplicationController < ActionController::Base
   include Knock::Authenticable
-    
+
   private
-  
+
   def authenticate_v1_user
     authenticate_for V1::User
   end
@@ -135,9 +116,9 @@ end
 
 Then you get the current user by calling `current_v1_user` instead of `current_user`.
 
-### Customization
+### Configuration
 
-#### Via the entity model
+#### In the entity model
 
 The entity model (e.g. `User`) can implement specific methods to provide
 customization over different parts of the authentication process.
@@ -196,27 +177,68 @@ class User < ActiveRecord::Base
 end
 ```
 
-#### Via the initializer
+- **Token Lifetime**
 
-The initializer [config/initializers/knock.rb](https://github.com/nsarno/knock/blob/master/lib/generators/templates/knock.rb)
-is generated when `rails g knock:install` is executed. Each configuration variable is
-documented with comments in the initializer itself.
+By default the generated tokens will be valid, after generated, for 1 day.
+You can change it in the Knock configuration file (config/knock.rb),
+setting the desired lifetime:
+
+E.g.
+
+```ruby
+  Knock.token_lifetime = 3.hours
+```
+
+If you are generating tokens for more than one entity, you can pass
+each lifetime in a hash, using the entities class names as keys, like:
+
+E.g.
+
+```ruby
+  # How long before a token is expired. If nil is provided,
+  # token will last forever.
+  Knock.token_lifetime = {
+    user: 1.day
+    admin: 30.minutes
+  }
+```
+
+#### In the initializer
+
+Read [lib/knock.rb](https://github.com/nsarno/knock/blob/master/lib/knock.rb) to learn about all the possible configuration options and their default values.
+
+You can create an initializer like in the example below:
+
+Inside `config/initializers/knock.rb`
+
+```ruby
+Knock.setup do |config|
+  config.token_lifetime = 1.hour
+
+  # For Auth0
+  config.token_audience = -> { Rails.application.secrets.auth0_client_id }
+  config.token_secret_signature_key = -> { JWT.base64url_decode Rails.application.secrets.auth0_client_secret }
+end
+```
 
 ### Authenticating from a web or mobile application
 
 Example request to get a token from your API:
+
 ```
 POST /user_token
 {"auth": {"email": "foo@bar.com", "password": "secret"}}
 ```
 
 Example response from the API:
+
 ```
 201 Created
 {"jwt": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9"}
 ```
 
 To make an authenticated request to your API, you need to pass the token via the request header:
+
 ```
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9
 GET /my_resources
